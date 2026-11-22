@@ -1,0 +1,292 @@
+<!doctype html>
+<!--
+  =====================================================================
+  GIAO DIỆN GAME THỊ TRẤN (HTML + CSS + JavaScript, chỉ 1 file)
+  =====================================================================
+  Cách dùng: lưu thành file .html rồi mở bằng trình duyệt là chạy.
+
+  Cấu trúc file:
+    1. <style>  : toàn bộ giao diện (màu sắc, vị trí, kích thước)
+    2. <body>   : các phần tử trên màn hình (thanh trên, cột nút, cảnh, thanh dưới)
+    3. <script> : hành vi khi bấm nút (thông báo, tăng xu/tiền)
+
+  CÁCH THAY ẢNH SAU NÀY:
+    Hiện mọi hình đang là icon emoji. Khi có ảnh, thay emoji bằng thẻ <img>,
+    ví dụ:   <div class="pop">🏬</div>
+      thành: <div class="pop"><img src="anh/shop.png" alt="Shop" style="width:100%"></div>
+    Dùng cùng cách cho: .b (nút cột bên), .sq (nút dưới), .ico (icon chỉ số), .avatar.
+    Muốn đổi nền cảnh: sửa thuộc tính background của .game.
+-->
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<!-- Giúp hiển thị đúng trên điện thoại -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thị trấn Mimi</title>
+<!-- Font tròn kiểu game (có font dự phòng nếu tải lỗi) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&display=swap">
+
+<style>
+/* ---------- 1. BIẾN MÀU: muốn đổi tông màu chỉ cần sửa ở đây ---------- */
+:root{
+  --sky1:#bfe3ff;   /* màu trời phía trên */
+  --sky2:#eaf6ff;   /* màu trời phía dưới */
+  --grass:#7cc04a;  /* cỏ sáng */
+  --grass2:#5aa23a; /* cỏ đậm */
+  --road:#6b7280;   /* màu đường */
+  --navy:#1e3a8a;   /* viền dưới nút xanh */
+  --btn:#2f6fd6;    /* màu nút xanh */
+  --btn2:#8fc1ff;   /* viền nút xanh */
+  --pinkd:#d9577d;  /* màu nhãn địa điểm */
+  --gold:#f5b81c;   /* viền khi chọn bằng bàn phím */
+  --ink:#14213d;    /* màu chữ thông báo */
+  --bar:#0f2a52cc;  /* nền thanh chỉ số (xanh đậm, hơi trong suốt) */
+  --page:#dbe7f3;   /* nền bên ngoài khung game */
+}
+/* Chế độ tối: chỉ đổi nền ngoài khung game */
+@media (prefers-color-scheme:dark){ :root{ --page:#0e1726; } }
+
+*{ box-sizing:border-box; }
+html,body{ margin:0; height:100%; }
+body{
+  background:var(--page);
+  font-family:'Baloo 2',system-ui,sans-serif;
+  color:#fff;
+  display:flex; justify-content:center; align-items:center; /* căn giữa khung game */
+}
+
+/* ---------- 2. KHUNG GAME (nền cảnh) ---------- */
+.game{
+  position:relative;                 /* để các phần tử con đặt vị trí tuyệt đối bên trong */
+  width:min(100%,980px);             /* rộng tối đa 980px */
+  aspect-ratio:16/10;                /* tỉ lệ khung hình ngang */
+  max-height:100vh; overflow:hidden; border-radius:14px;
+  /* nền: trời (0-38%) -> đường chân trời -> cỏ */
+  background:linear-gradient(var(--sky1) 0%,var(--sky2) 38%,#cfe9b8 38.1%,var(--grass) 60%,var(--grass2) 100%);
+  container-type:inline-size;        /* cho phép dùng đơn vị cqw = % chiều rộng khung */
+}
+/* Hai ngọn đồi xanh trang trí */
+.hill{ position:absolute; border-radius:50%; background:#98d16a; }
+.h1{ width:60%; height:50%; left:-10%; top:32%; }
+.h2{ width:55%; height:45%; right:-12%; top:30%; background:#8bc85c; }
+/* Quả cầu lớn trên cao (Nhà Kỳ Bí) */
+.orb{
+  position:absolute; left:41%; top:12%; width:17%; aspect-ratio:1; border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#fff,#e7e1ff 45%,#b9b0e8);
+  box-shadow:0 0 30px #fff9; border:3px solid #fff8;
+}
+/* Con đường dưới cùng, nghiêng nhẹ, có vạch trắng */
+.road{
+  position:absolute; left:-5%; right:-5%; bottom:6%; height:15%;
+  background:var(--road); transform:rotate(-2deg);
+  background-image:repeating-linear-gradient(90deg,#fff 0 6%,transparent 6% 12%);
+  background-size:100% 4%; background-repeat:no-repeat; background-position:0 50%;
+}
+
+/* ---------- 3. ĐỊA ĐIỂM TRÊN BẢN ĐỒ (Shop, Thay Đồ, ...) ---------- */
+.spot{
+  position:absolute;                 /* vị trí đặt bằng left/top trực tiếp trong HTML */
+  border:0; background:none; cursor:pointer;
+  font:inherit; color:inherit; padding:0; text-align:center;
+}
+/* .pop = hình của tòa nhà (hiện là emoji; sau này thay bằng <img>) */
+.pop{
+  font-size:clamp(34px,9cqw,92px);   /* tự co giãn theo kích thước khung */
+  line-height:1; filter:drop-shadow(0 4px 3px #0003); transition:transform .15s;
+}
+.spot:hover .pop{ transform:translateY(-3px); }  /* nhích lên khi rê chuột */
+/* .tag = nhãn tên địa điểm hình viên thuốc màu hồng */
+.tag{
+  display:inline-block; background:#fff; color:var(--pinkd);
+  border:2px solid var(--pinkd); border-radius:999px; padding:0 .8em;
+  font-weight:700; font-size:clamp(11px,2.3cqw,22px); box-shadow:0 2px 0 var(--pinkd);
+}
+.spot:hover .tag,.spot:active .tag{ background:var(--pinkd); color:#fff; }
+
+/* ---------- 4. THANH CHỈ SỐ TRÊN CÙNG ---------- */
+.hud{ position:absolute; top:2%; left:2%; right:2%; display:flex; gap:1.2%; align-items:center; }
+/* Ảnh đại diện + tên người chơi */
+.avatar{
+  width:9%; aspect-ratio:1; border-radius:14%; border:3px solid #f1d39b; background:#fde8c8;
+  display:grid; place-items:center; font-size:clamp(24px,6cqw,60px);
+  box-shadow:0 3px 0 #0003; position:relative;
+}
+.avatar i{                            /* tên người chơi nằm dưới avatar */
+  position:absolute; bottom:-6px; left:50%; transform:translateX(-50%);
+  font:700 clamp(9px,1.5cqw,14px)/1 'Baloo 2'; background:var(--pinkd);
+  padding:2px 6px; border-radius:8px; white-space:nowrap;
+}
+/* Mỗi ô chỉ số (cấp độ, dân số, xu, tiền) */
+.stat{
+  position:relative; flex:1; height:clamp(24px,4.6cqw,44px);
+  background:var(--bar); border-radius:999px; display:flex; align-items:center;
+  padding-left:clamp(26px,5cqw,48px); font-weight:700; font-size:clamp(12px,2.6cqw,24px); overflow:hidden;
+}
+.stat .fill{ position:absolute; inset:0 auto 0 0; background:linear-gradient(#5be0f0,#17a5c9); z-index:0; } /* thanh tiến độ: chỉnh width trong HTML */
+.stat span{ position:relative; z-index:1; margin:0 auto; }  /* con số */
+.ico{                                  /* icon nhỏ bên trái ô chỉ số */
+  position:absolute; left:-2px; top:50%; transform:translateY(-50%);
+  font-size:clamp(22px,5cqw,46px); z-index:2;
+}
+/* Nút "+" màu xanh */
+.plus{
+  border:0; width:clamp(24px,4.4cqw,42px); aspect-ratio:1; border-radius:22%;
+  background:linear-gradient(#58a1ff,var(--btn)); color:#fff;
+  font:700 clamp(18px,3.6cqw,34px)/1 'Baloo 2'; cursor:pointer;
+  box-shadow:0 3px 0 var(--navy); flex:none;
+}
+.plus:active{ transform:translateY(2px); box-shadow:none; }  /* hiệu ứng ấn xuống */
+.rank{                                 /* chữ "Bảng Xếp Hạng" */
+  position:absolute; right:2%; top:17%; background:#0006; border-radius:8px;
+  padding:2px 10px; font-size:clamp(10px,2cqw,18px);
+}
+
+/* ---------- 5. CỘT NÚT BÊN TRÁI / PHẢI ---------- */
+.col{ position:absolute; display:flex; flex-direction:column; gap:2.2cqw; align-items:center; }
+.col.r{ right:1.5%; top:18%; }
+.col.l{ left:1.5%;  top:20%; }
+.side{
+  background:none; border:0; cursor:pointer; color:#fff; text-align:center;
+  font:700 clamp(10px,2cqw,19px)/1.1 'Baloo 2'; position:relative;
+}
+.side .b{                              /* vòng tròn trắng chứa icon */
+  display:grid; place-items:center; width:clamp(36px,8cqw,76px); aspect-ratio:1;
+  border-radius:50%; background:#ffffffd9; font-size:clamp(20px,4.6cqw,44px);
+  margin:0 auto 2px; box-shadow:0 3px 0 #0002;
+}
+.side em{                              /* nhãn chữ dưới icon */
+  font-style:normal; background:var(--bar); border-radius:999px; padding:1px 10px; display:inline-block;
+}
+.badge{                                /* chấm đỏ thông báo (dấu ! hoặc số) */
+  position:absolute; top:-4px; right:-4px; background:#e11d48; color:#fff;
+  border-radius:50%; width:1.5em; aspect-ratio:1; display:grid; place-items:center; font-size:.85em;
+}
+
+/* ---------- 6. THANH NÚT PHÍA DƯỚI ---------- */
+.dock{ position:absolute; left:2%; right:2%; bottom:2.5%; display:flex; justify-content:space-between; align-items:flex-end; }
+.grp{ display:flex; gap:1.4cqw; }       /* nhóm 3 nút bên trái hoặc bên phải */
+.sq{                                    /* nút vuông bo góc màu xanh */
+  border:3px solid var(--btn2); background:linear-gradient(#4a8be6,var(--btn));
+  width:clamp(40px,8.6cqw,82px); aspect-ratio:1; border-radius:16%;
+  font-size:clamp(20px,4.6cqw,44px); cursor:pointer; box-shadow:0 4px 0 var(--navy); position:relative;
+}
+.sq:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--navy); }
+.sq.big{ width:clamp(46px,9.6cqw,92px); }  /* nút to hơn ở hai đầu */
+
+/* ---------- 7. THÔNG BÁO NỔI (hiện khi bấm nút) ---------- */
+.toast{
+  position:absolute; left:50%; bottom:20%; transform:translate(-50%,20px);
+  background:var(--ink); color:#fff; padding:8px 18px; border-radius:999px;
+  opacity:0; pointer-events:none; transition:.25s; font-size:clamp(12px,2.4cqw,20px); white-space:nowrap;
+}
+.toast.on{ opacity:1; transform:translate(-50%,0); }  /* class "on" được JavaScript bật/tắt */
+
+/* ---------- 8. TIỆN ÍCH ---------- */
+/* Viền vàng khi dùng bàn phím (Tab) để dễ thao tác */
+.spot:focus-visible,.sq:focus-visible,.plus:focus-visible{ outline:3px solid var(--gold); outline-offset:3px; }
+/* Điện thoại dọc: đổi khung thành tỉ lệ đứng */
+@media (max-width:560px){ .game{ aspect-ratio:9/16; border-radius:0; } }
+/* Tôn trọng người dùng tắt hiệu ứng chuyển động */
+@media (prefers-reduced-motion:reduce){ *{ transition:none!important; } }
+</style>
+</head>
+
+<body>
+<main class="game" id="game">
+
+  <!-- ===== Nền cảnh: đồi + quả cầu ===== -->
+  <div class="hill h1"></div><div class="hill h2"></div>
+  <div class="orb"></div>
+
+  <!-- ===== Các địa điểm =====
+       style="left/top" = vị trí tính theo % khung game (kéo sang phải/xuống dưới thì tăng số).
+       data-n = tên hiện trong thông báo khi bấm.
+       Mỗi địa điểm gồm: hình (.pop) + nhãn tên (.tag). -->
+  <button class="spot" style="left:41%;top:36%" data-n="Nhà Kỳ Bí"><span class="tag">Nhà Kỳ Bí</span></button>
+  <button class="spot" style="left:60%;top:40%" data-n="Linh Cảm Không Gian"><div class="pop">🏛️</div><span class="tag">Linh Cảm Không Gian</span></button>
+  <button class="spot" style="left:6%;top:46%"  data-n="Shop"><div class="pop" style="font-size:clamp(44px,12cqw,120px)">🏬</div><span class="tag">Shop</span></button>
+  <button class="spot" style="left:57%;top:58%" data-n="Thay Đồ"><div class="pop">🏡</div><span class="tag">Thay Đồ</span></button>
+  <button class="spot" style="left:15%;top:70%" data-n="Khởi hành"><div class="pop" style="font-size:clamp(44px,12cqw,120px)">🚌</div><span class="tag">Khởi hành</span></button>
+  <button class="spot" style="left:58%;top:74%" data-n="Đến Nhà Nhỏ"><div class="pop">🚲</div><span class="tag">Đến Nhà Nhỏ</span></button>
+  <div class="road"></div>
+
+  <!-- ===== Thanh chỉ số trên cùng =====
+       .fill style="width:54%" = độ đầy của thanh tiến độ -->
+  <div class="hud">
+    <div class="avatar">👩‍🦰<i>Rinnnnnm</i></div>                         <!-- ảnh đại diện + tên -->
+    <div class="stat"><span class="ico">⭐</span><div class="fill" style="width:54%"></div><span>19/35</span></div>  <!-- cấp độ / kinh nghiệm -->
+    <div class="stat"><span class="ico">👥</span><div class="fill" style="width:27%"></div><span>40/150</span></div> <!-- dân số -->
+    <button class="plus" aria-label="Thêm">+</button>
+    <div class="stat"><span class="ico">🪙</span><span id="coin">606</span></div>     <!-- xu (id="coin" để JS cập nhật) -->
+    <button class="plus" id="addCoin" aria-label="Thêm xu">+</button>
+    <div class="stat"><span class="ico">💵</span><span id="cash">36</span></div>      <!-- tiền (id="cash") -->
+    <button class="plus" id="addCash" aria-label="Thêm tiền">+</button>
+  </div>
+  <div class="rank">🏆 Bảng Xếp Hạng</div>
+
+  <!-- ===== Cột nút bên trái ===== -->
+  <div class="col l">
+    <button class="side" data-n="Hướng Dẫn"><span class="b">🐱</span><em>H.Dẫn</em></button>
+    <button class="side" data-n="Điểm Danh"><span class="b">📅</span><em>Đ.Danh</em></button>
+    <button class="side" data-n="Trung Tâm"><span class="b">🎁</span><em>Trung Tâm</em></button>
+  </div>
+
+  <!-- ===== Cột nút bên phải (nút Hoạt Động có chấm đỏ .badge) ===== -->
+  <div class="col r">
+    <button class="side" data-n="Tủ Đồ"><span class="b">👗</span><em>Tủ Đồ</em></button>
+    <button class="side" data-n="Bạn"><span class="b">👭</span><em>Bạn</em></button>
+    <button class="side" data-n="Nhiệm Vụ"><span class="b">📖</span><em>N.Vụ</em></button>
+    <button class="side" data-n="Thành Tựu"><span class="b">🏅</span><em>T.Tựu</em></button>
+    <button class="side" data-n="Hoạt Động"><span class="b">🎈</span><em>H.Động</em><span class="badge">!</span></button>
+  </div>
+
+  <!-- ===== Thanh nút phía dưới (2 nhóm: trái và phải) ===== -->
+  <div class="dock">
+    <div class="grp">
+      <button class="sq big" data-n="Dân cư"  aria-label="Dân cư">👫</button>
+      <button class="sq"     data-n="Đất"     aria-label="Đất">🟦</button>
+      <button class="sq"     data-n="Đường"   aria-label="Đường">🛣️</button>
+    </div>
+    <div class="grp">
+      <button class="sq"     data-n="Thành tích" aria-label="Thành tích">🏆</button>
+      <button class="sq"     data-n="Kho hàng"   aria-label="Kho hàng">📦</button>
+      <button class="sq big" data-n="Xây dựng"   aria-label="Xây dựng">👷<span class="badge" style="font-size:.4em">2</span></button>
+    </div>
+  </div>
+
+  <!-- Hộp thông báo nổi -->
+  <div class="toast" id="toast" role="status"></div>
+</main>
+
+<script>
+(function () {
+  // Lấy hộp thông báo và biến đếm thời gian tự ẩn
+  var toast = document.getElementById('toast'), timer;
+
+  // Hiện thông báo trong 1,6 giây rồi tự ẩn
+  function say(message) {
+    toast.textContent = message;
+    toast.classList.add('on');
+    clearTimeout(timer);
+    timer = setTimeout(function () { toast.classList.remove('on'); }, 1600);
+  }
+
+  // Mọi phần tử có thuộc tính data-n: bấm vào sẽ hiện "Mở: <tên>".
+  // TODO: thay say(...) bằng code mở màn hình thật (ví dụ chuyển sang trang bán hàng).
+  document.querySelectorAll('[data-n]').forEach(function (btn) {
+    btn.addEventListener('click', function () { say('Mở: ' + btn.dataset.n); });
+  });
+
+  // Cộng thêm số vào ô chỉ số có id tương ứng
+  function bump(id, step) {
+    var el = document.getElementById(id);
+    el.textContent = parseInt(el.textContent, 10) + step;
+  }
+
+  // Nút "+" bên cạnh xu: +100 xu. Nút "+" bên cạnh tiền: +5 tiền.
+  document.getElementById('addCoin').onclick = function () { bump('coin', 100); say('+100 xu'); };
+  document.getElementById('addCash').onclick = function () { bump('cash', 5);   say('+5 tiền'); };
+})();
+</script>
+</body>
+</html>
